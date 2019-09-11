@@ -24,9 +24,12 @@
         <div class="content">
           <el-input :placeholder="accountMode ? '请输入密码' : '请输入短信验证码'"
                     v-model="password1"
-                    :show-password="accountMode">
+                    :show-password="accountMode"
+                    @click.native="getCode">
             <template slot="append"
-                      v-if="!accountMode">获取验证码</template>
+                      v-if="!accountMode  && timeCode == 60">获取验证码</template>
+            <template slot="append"
+                      v-if="!accountMode && timeCode != 60">{{timeCode}}s</template>
           </el-input>
           <p class="tip"
              v-show="this.password1.length">{{verifyLoginPassword1}}</p>
@@ -39,7 +42,8 @@
             七天自动登录
           </span>
         </div>
-        <el-button round>登录</el-button>
+        <el-button round
+                   @click="login">登录</el-button>
       </el-main>
       <!-- 注册界面 -->
       <el-main v-show="!isLogin">
@@ -53,9 +57,12 @@
         <div class="content">
           <el-input :placeholder="accountMode ? '请输入密码' : '请输入短信验证码'"
                     v-model="password1"
-                    :show-password="accountMode">
+                    :show-password="accountMode"
+                    @click.native="getCode">
             <template slot="append"
-                      v-if="!accountMode">获取验证码</template>
+                      v-if="!accountMode && timeCode == 60">获取验证码</template>
+            <template slot="append"
+                      v-if="!accountMode && timeCode != 60">{{timeCode}}s</template>
           </el-input>
           <p class="tip"
              v-show="this.password1.length">{{verifyRegPassword1}}</p>
@@ -97,6 +104,8 @@ export default {
       account: '',
       password1: '',
       password2: '',
+      timeCode: 60,
+      clearFlag: null,
       isLogin: true,
       autoLogin: false,
       accountMode: false
@@ -151,21 +160,27 @@ export default {
     }
   },
   methods: {
-    // 账号模式 手机模式 切换
-    changeLoginType () {
-      this.accountMode = !this.accountMode
+    // 清除填入数据
+    clearInput () {
       this.account = ''
       this.password1 = ''
       this.password2 = ''
     },
-    // 注册 登录 切换
+    // 账号模式 手机模式 切换
+    changeLoginType () {
+      this.accountMode = !this.accountMode
+      this.clearInput()
+    },
+    // 注册 登录 tab栏切换
     loginMode () {
       this.isLogin = true
+      this.clearInput()
     },
     registerMode () {
       this.isLogin = false
+      this.clearInput()
     },
-    // 注册 登录 提交
+    // 注册
     async register () {
       // 账号 + 密码
       if (this.accountMode) {
@@ -177,8 +192,66 @@ export default {
         if (res.code === 0) {
           console.log('ok')
         }
+      } else {
+        // 手机 + 验证码
+        let res = await service.post('/user/registerA', {
+          phone: this.account,
+          code: this.password1,
+          password: this.password2
+        })
+        if (res.code === 0) {
+          console.log('ok')
+        }
+      }
+    },
+    // 登录
+    async login () {
+      if (this.accountMode) {
+        let res = await service.post('/token', {
+          account: this.account,
+          password: this.password1,
+          type: 101
+        })
+        console.log(res)
+      } else {
+        let res = await service.post('/token', {
+          account: this.account,
+          code: this.password1,
+          type: 102
+        })
+        console.log(res)
+      }
+    },
+    // 动态倒计时
+    countTimeCode () {
+      this.clearFlag = setInterval(() => {
+        // 倒计时结束后，重制标志位
+        if (this.timeCode == 0) {
+          this.timeCode = 60
+          clearInterval(this.clearFlag)
+          return
+        }
+        // 秒数每次减1
+        this.timeCode--
+      }, 1000)// 1s调用1次
+    },
+    // 获取验证码
+    async getCode (e) {
+      if (e.target.innerHTML == '获取验证码') {
+        if (this.account.length !== 11) return
+        let res = await service.post('/user/verifyPhone', {
+          phone: this.account
+        })
+        if (res.code === 0) {
+          // 动态倒计时
+          this.countTimeCode()
+        }
       }
     }
+  },
+  // 组件销毁时清除定时器
+  beforeDestroy () {
+    clearInterval(this.clearFlag)
   }
 }
 </script>
