@@ -1,0 +1,8 @@
+export const SET_LOGINFULL = 'SET_LOGINFULL'
+
+export const SET_ISLOGIN = 'SET_ISLOGIN'
+
+export const SET_TOKEN = 'SET_TOKEN'
+
+export const SET_QUESTIONDETAIL = 'SET_QUESTIONDETAIL'
+

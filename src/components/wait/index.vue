@@ -1,0 +1,93 @@
+<template>
+  <div class="wait">
+    <list :questionList="list"></list>
+  </div>
+</template>
+
+<script>
+import List from 'base/list/index'
+import service from 'common/js/service'
+export default {
+  data () {
+    return {
+      page_num: 1,
+      list: []
+    }
+  },
+  created () {
+    this._getList()
+  },
+  methods: {
+    async _getList () {
+      const res = await service.get(`/question/${this.page_num}`, {
+        type: 'wait'
+      })
+      if (res.code === 0) this.list = res.data
+    }
+  },
+  components: {
+    List
+  },
+}
+</script>
+
+<style lang="stylus" scoped>
+@import '~common/stylus/variable'
+.wait
+  background #fff
+  padding 28px 32px
+  box-shadow 0 4px 8px 0 rgba(28, 31, 33, 0.1)
+  border-radius 12px
+  .boxContainer
+    width 100%
+    .boxGroup
+      display flex
+      flex-direction row
+      .boxCol
+        display flex
+        flex-direction column
+        align-items center
+      .left
+        color $text-grey
+        font-size $font-size-small
+        padding-right 20px
+        font-weight bold
+        min-width 50px
+        .text
+          font-size $font-size-small-s
+          font-weight normal
+          cursor pointer
+        .num
+          cursor pointer
+      .right
+        align-items flex-start
+        width 100%
+        overflow hidden
+        .title
+          font-size $font-size-small
+          width 100%
+          color #07111b
+          line-height 24px
+          display block
+          margin-bottom 4px
+          font-weight 700
+          overflow hidden
+          text-overflow ellipsis
+          white-space nowrap
+        .title:hover
+          cursor pointer
+          color $theme
+        .tags
+          display flex
+          flex-direction row
+          width 100%
+          color $text-grey
+          line-height 16px
+          font-size $font-size-tip
+          overflow hidden
+          text-overflow ellipsis
+          white-space nowrap
+          .tag:hover
+            cursor pointer
+            color $theme
+</style>

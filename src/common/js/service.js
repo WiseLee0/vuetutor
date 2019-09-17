@@ -5,7 +5,6 @@ const baseURL = process.env.NODE_ENV === 'production' ? '/' : '//localhost:8080/
 // 创建axios实例
 let service = axios.create({
   baseURL: baseURL,
-  withCredentials: true,
   timeout: 3000 // 请求超时时间
 })
 
@@ -21,20 +20,24 @@ service.interceptors.response.use(
     return response.data
   },
   error => {
-    return Promise.reject(error.response)
+    return error.response
   }
 )
 
-function get (url, params = {}) {
+function get (url, params = {}, token = '') {
   return service({
-    url: url,
+    url,
     method: 'get',
+    auth: {
+      username: token,
+      password: ''
+    },
     params
   })
 }
 
 // 封装post请求
-function post (url, data = {}) {
+function post (url, data = {}, token = '') {
   // 默认配置
   let sendObject = {
     url: url,
@@ -42,24 +45,31 @@ function post (url, data = {}) {
     headers: {
       'Content-Type': 'application/json;charset=UTF-8'
     },
+    auth: {
+      username: token,
+      password: ''
+    },
     data: data
   }
   return service(sendObject)
 }
 
-// 封装put方法 (resfulAPI常用)
-function put (url, data = {}) {
+// 封装put方法
+function put (url, data = {}, token = '') {
   return service({
     url: url,
     method: 'put',
     headers: {
       'Content-Type': 'application/json;charset=UTF-8'
     },
+    auth: {
+      username: token,
+      password: ''
+    },
     data: JSON.stringify(data)
   })
 }
 
-// 不要忘记export
 export default {
   get,
   post,
