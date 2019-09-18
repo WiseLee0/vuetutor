@@ -1,7 +1,8 @@
 <template>
   <div class="hot">
     <list :questionList="list"
-          @chooseItem="chooseItem"></list>
+          @chooseItem="chooseItem"
+          @refresh="getNewData"></list>
     <router-view></router-view>
   </div>
 </template>
@@ -26,12 +27,19 @@ export default {
         type: 'hot'
       })
       if (res.code === 0) {
+        if (!res.data.length) {
+          return
+        }
         this.list = res.data
       }
     },
+    getNewData (index) {
+      this.page_num = index
+      this._getList()
+    },
     chooseItem (index) {
       this.$router.push({
-        path: `/hot/${index}`
+        path: `/detail/${index}`
       })
     }
   },

@@ -39,11 +39,7 @@ export default new Router({
       redirect: '/hot'
     }, {
       path: '/hot',
-      component: Hot,
-      children: [{
-        path: ':id',
-        component: Detail
-      }]
+      component: Hot
     },
     {
       path: '/new',
@@ -52,6 +48,10 @@ export default new Router({
     {
       path: '/wait',
       component: Wait
+    },
+    {
+      path: '/detail/:id',
+      component: Detail
     }
   ]
 })

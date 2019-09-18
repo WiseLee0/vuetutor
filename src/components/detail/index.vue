@@ -118,7 +118,9 @@
       <el-input type="textarea"
                 :rows="7"
                 placeholder="请输入内容"
-                v-model="textarea">
+                v-model="textarea"
+                maxlength="200"
+                show-word-limit>
       </el-input>
       <span slot="footer"
             class="dialog-footer">
@@ -133,7 +135,7 @@
 <script>
 import BScroll from '@better-scroll/core'
 import MouseWheel from '@better-scroll/mouse-wheel'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import service from 'common/js/service'
 
 BScroll.use(MouseWheel)
@@ -166,6 +168,15 @@ export default {
       await service.put('/question/look', {
         id: this.questionDetail.id
       })
+      const sult = await service.get('/answer', {
+        question_id: this.questionDetail.id
+      })
+      if (sult.code === 0) {
+        this.lists = sult.data
+        setTimeout(() => {
+          this.bscroll.refresh()
+        }, 20)
+      }
       if (res.nickName) {
         this.nickName = res.nickName
       }
@@ -173,15 +184,6 @@ export default {
         this.$router.push({
           path: '/hot'
         })
-      }
-      let sult = await service.get('/answer', {
-        question_id: this.questionDetail.id
-      })
-      if (sult.code === 0) {
-        this.lists = sult.data
-        setTimeout(() => {
-          this.bscroll.refresh()
-        }, 20);
       }
     },
     // 标准时间转换
@@ -197,7 +199,7 @@ export default {
     },
     // 是否查看完整信息
     _isShowAll () {
-      if (this.$refs.contentDetail.clientHeight > this.$refs.content.clientHeight) {
+      if (this.$refs.contentDetail.clientHeight > 40) {
         this.showFlag = false
       } else {
         this.showFlag = true
@@ -215,7 +217,8 @@ export default {
       this.bscroll = new BScroll(this.$refs.detailContent, {
         scrollX: false,
         scrollY: true,
-        probeType: 1,
+        probeType: 2,
+        startY: 0,
         mouseWheel: {
           speed: 20,
           invert: false,
@@ -242,7 +245,6 @@ export default {
         })
         return
       }
-      console.log(this.questionDetail)
       const res = await service.post('/answer/create', {
         question_id: this.questionDetail.id,
         content: this.textarea,
@@ -267,6 +269,16 @@ export default {
           this.bscroll.refresh()
         }, 20);
       }
+      if (res.status === 403) {
+        this.$notify({
+          title: '未登录',
+          message: '游客身份无法回复',
+          duration: 1500,
+          type: 'error'
+        })
+        this.clearToken()
+        return
+      }
     },
     // 点赞，还待处理
     async likeIt (item, index) {
@@ -290,6 +302,21 @@ export default {
         type: 'success'
       })
       item.like_num++
+    },
+    ...mapActions(['clearToken'])
+  },
+  watch: {
+    async questionDetail () {
+      const sult = await service.get('/answer', {
+        question_id: this.questionDetail.id
+      })
+      if (sult.code === 0) {
+        this.lists = sult.data
+        setTimeout(() => {
+          this.showFlag = false
+          this.bscroll.refresh()
+        }, 20)
+      }
     }
   },
 }
@@ -304,7 +331,6 @@ export default {
   left 0
   right 0
   z-index 99
-  overflow hidden
   background-color $backgroundColor
   .detailContent
     height 100%

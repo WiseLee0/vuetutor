@@ -38,9 +38,11 @@
                               class="vertical"></el-divider>
                 </span>
               </div>
-              <div v-show="currentIndex === index">
+              <div v-show="currentIndex === index"
+                   @click="detail(item,index)">
                 <span class="tag-right">我来回答</span>
-                <span class="tag-right-text">可获得2积分</span>
+                <span class="
+                      tag-right-text">可获得2积分</span>
               </div>
             </div>
           </div>
@@ -48,11 +50,19 @@
         <el-divider></el-divider>
       </div>
     </div>
+    <el-pagination layout="prev, pager, next"
+                   background
+                   :total="50"
+                   @current-change="currentChange">
+    </el-pagination>
   </div>
 </template>
 
 <script>
 import { mapMutations } from 'vuex'
+import BScroll from '@better-scroll/core'
+import MouseWheel from '@better-scroll/mouse-wheel'
+BScroll.use(MouseWheel)
 export default {
   props: {
     questionList: {
@@ -67,13 +77,15 @@ export default {
     }
   },
   methods: {
+    currentChange (index) {
+      this.$emit('refresh', index)
+    },
     isShow (solve, index) {
       if (!solve) this.currentIndex = index
       else this.currentIndex = -1
     },
     detail (item, index) {
       this.set_questionDetail(item)
-      console.log(item)
       this.$emit('chooseItem', index)
     },
     ...mapMutations({
@@ -87,6 +99,9 @@ export default {
 @import '~common/stylus/variable'
 .list
   background #fff
+  .el-pagination
+    margin-top 25px
+    text-align center
   .boxContainer
     width 100%
     .el-divider

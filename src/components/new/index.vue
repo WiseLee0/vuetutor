@@ -1,12 +1,16 @@
 <template>
   <div class="new">
-    <list :questionList="list"></list>
+    <list :questionList="list"
+          @chooseItem="chooseItem"
+          @refresh="getNewData"></list>
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
 import List from 'base/list/index'
 import service from 'common/js/service'
+
 export default {
   data () {
     return {
@@ -22,7 +26,21 @@ export default {
       const res = await service.get(`/question/${this.page_num}`, {
         type: 'new'
       })
-      if (res.code === 0) this.list = res.data
+      if (res.code === 0) {
+        if (!res.data.length) {
+          return
+        }
+        this.list = res.data
+      }
+    },
+    getNewData (index) {
+      this.page_num = index
+      this._getList()
+    },
+    chooseItem (index) {
+      this.$router.push({
+        path: `/detail/${index}`
+      })
     }
   },
   components: {

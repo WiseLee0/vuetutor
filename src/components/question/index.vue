@@ -6,11 +6,13 @@
           <canvas ref="title"></canvas>
         </div>
         <div class="right">
-          <el-input placeholder="请输入你的问题"
-                    suffix-icon="el-icon-search"
-                    v-model="search"
-                    class="input">
-          </el-input>
+          <el-autocomplete placeholder="请输入你的问题"
+                           suffix-icon="el-icon-search"
+                           v-model="state"
+                           :fetch-suggestions="querySearchAsync"
+                           @select="handleSelect"
+                           class="input">
+          </el-autocomplete>
           <el-button type="success"
                      round
                      class="button"
@@ -35,57 +37,79 @@
           </el-tooltip>
         </div>
       </el-header>
-      <div class="containerBox"
-           ref="containerBox">
-        <div>
-          <el-container class="container">
-            <el-main class="container-mian">
-              <el-tabs v-model="activeTag"
-                       type="border-card"
-                       @tab-click="changeTab">
-                <el-tab-pane label="热门回答"
-                             name="hot"></el-tab-pane>
-                <el-tab-pane label="最新回答"
-                             name="new"></el-tab-pane>
-                <el-tab-pane label="等我回答"
-                             name="wait"></el-tab-pane>
-                <el-tab-pane label="大神精品"
-                             name="fourth"></el-tab-pane>
-                <keep-alive>
-                  <router-view></router-view>
-                </keep-alive>
-              </el-tabs>
-            </el-main>
-            <el-aside width="280px"
-                      class="container-aside">
-              <div class="user">
-                <div class="top">
-                  <el-avatar> user </el-avatar>
-                  <div class="right">
-                    <span class="nickName">{{nickName?nickName:'游客'}}</span>
-                    <span class="num">积分：2</span>
-                  </div>
-                </div>
-                <el-divider></el-divider>
-                <div class="bottom">
-                  <div class="col">
-                    <span class="col-num">{{count.ask_num?count.ask_num:0}}</span>
-                    <span class="col-text">我提问的</span>
-                  </div>
-                  <div class="col">
-                    <span class="col-num">{{count.follow_num?count.follow_num:0}}</span>
-                    <span class="col-text">我关注的</span>
-                  </div>
-                  <div class="col">
-                    <span class="col-num">{{count.reply_num?count.reply_num:0}}</span>
-                    <span class="col-text">我回答的</span>
-                  </div>
+      <div class="containerBox">
+        <el-container class="container">
+          <el-main class="container-mian">
+            <el-tabs v-model="activeTag"
+                     type="border-card"
+                     @tab-click="changeTab">
+              <el-tab-pane label="热门回答"
+                           name="hot"></el-tab-pane>
+              <el-tab-pane label="最新回答"
+                           name="new"></el-tab-pane>
+              <el-tab-pane label="等我回答"
+                           name="wait"></el-tab-pane>
+              <keep-alive>
+                <router-view></router-view>
+              </keep-alive>
+            </el-tabs>
+          </el-main>
+          <el-aside width="280px"
+                    class="container-aside">
+            <div class="user">
+              <div class="top">
+                <el-avatar> user </el-avatar>
+                <div class="right">
+                  <span class="nickName">{{nickName?nickName:'游客'}}</span>
+                  <span class="num">积分：2</span>
                 </div>
               </div>
-            </el-aside>
-          </el-container>
-          <el-footer class="footer">Footer</el-footer>
-        </div>
+              <el-divider></el-divider>
+              <div class="bottom">
+                <div class="col">
+                  <span class="col-num">{{count.ask_num?count.ask_num:0}}</span>
+                  <span class="col-text">我提问的</span>
+                </div>
+                <div class="col">
+                  <span class="col-num">{{count.follow_num?count.follow_num:0}}</span>
+                  <span class="col-text">我关注的</span>
+                </div>
+                <div class="col">
+                  <span class="col-num">{{count.reply_num?count.reply_num:0}}</span>
+                  <span class="col-text">我回答的</span>
+                </div>
+              </div>
+            </div>
+            <div class="rank">
+              <h3>回答排行榜</h3>
+              <div class="rank-box">
+                <div v-for="rank in rankList"
+                     :key='rank.id'>
+                  <div class="row">
+                    <div class="userMsg">
+                      <el-avatar :size="48"> user </el-avatar>
+                      <div class="smallMsg">
+                        <span class="top"
+                              v-html="rank.nickName"></span>
+                        <div class="bot">
+                          <span>{{rank.reply_num}}个回答</span>
+                          <span class="ml">{{rank.follow_num}}个支持</span>
+                        </div>
+                      </div>
+                      <el-button round
+                                 size="mini">+关注</el-button>
+                    </div>
+
+                  </div>
+                  <el-divider></el-divider>
+                </div>
+              </div>
+            </div>
+          </el-aside>
+        </el-container>
+        <el-footer class="footer">
+          <span>Copyright &copy; 2019 赣ICP备19011987号-1</span>
+        </el-footer>
       </div>
     </el-container>
     <el-dialog title="提出问题"
@@ -113,20 +137,22 @@
 <script>
 import { mapMutations, mapGetters, mapActions } from "vuex"
 import service from 'common/js/service'
-import BScroll from '@better-scroll/core'
-import MouseWheel from '@better-scroll/mouse-wheel'
-BScroll.use(MouseWheel)
 export default {
   data () {
     return {
-      search: '',
       activeTag: 'hot',
       count: [],
       nickName: '',
-      scroll: null,
+      rankList: [],
       showDialog: false,
       title: '',
-      content: ''
+      content: '',
+      restaurants: [{
+        "value": "请输入搜索内容",
+        "key": 0
+      }],
+      state: '',
+      timeout: null
     }
   },
   created () {
@@ -134,15 +160,44 @@ export default {
     setTimeout(() => {
       this.drawText()
       this._getCount()
-      this._initSrcoll()
     }, 20)
   },
   computed: {
     ...mapGetters(['token'])
   },
   methods: {
+    // 搜索框
+    async querySearchAsync (queryString, cb) {
+      let restaurants = this.restaurants
+      let results = queryString ? await this.getSearch(queryString) : restaurants
+      clearTimeout(this.timeout)
+      this.timeout = setTimeout(() => {
+        cb(results)
+      }, 700)
+    },
+    async getSearch (queryString) {
+      let res = await service.post('/question/search', {
+        title: queryString
+      })
+      res.forEach(element => {
+        element.value = element.title
+      })
+      return res
+    },
+    handleSelect (item) {
+      this.state = ''
+      if (item.key == 0) {
+        return
+      }
+      this.set_questionDetail(item)
+      this.$router.push({
+        path: `/detail/search`
+      })
+    },
     // 获取用户的提问、关注、回答数量
     async _getCount () {
+      this.rankList = await service.get('/count/rank', {
+      })
       if (this.token.length) {
         this.count = await service.get('/count', {
         }, this.token)
@@ -151,22 +206,6 @@ export default {
         this.nickName = res.nickName
         global.nickName = this.nickName
       }
-      setTimeout(() => {
-        this.scroll.refresh()
-      }, 20);
-    },
-    // 初始化滚轮
-    _initSrcoll () {
-      this.scroll = new BScroll(this.$refs.containerBox, {
-        scrollX: false,
-        scrollY: true,
-        probeType: 1,
-        mouseWheel: {
-          speed: 20,
-          invert: false,
-          easeTime: 300
-        }
-      })
     },
     // 切换路由
     changeTab () {
@@ -226,6 +265,17 @@ export default {
         })
         return
       }
+      if (res.status === 403) {
+        this.clearToken()
+        this.showDialog = false
+        this.$notify({
+          title: '提交失败',
+          message: '请登录后提交你的问题',
+          duration: 1500,
+          type: 'error'
+        })
+        return
+      }
       this.$notify({
         title: '提交成功',
         message: '你的问题提交成功',
@@ -236,7 +286,8 @@ export default {
     },
     ...mapMutations({
       'set_isLogin': 'SET_ISLOGIN',
-      'set_loginFull': 'SET_LOGINFULL'
+      'set_loginFull': 'SET_LOGINFULL',
+      'set_questionDetail': 'SET_QUESTIONDETAIL'
     }),
     ...mapActions(['clearToken'])
   },
@@ -305,19 +356,13 @@ export default {
           cursor pointer
           color $theme
   .containerBox
-    position fixed
-    top 80px
-    bottom 0
-    left 0
-    right 0
-    z-index 99
-    overflow hidden
     .container
       width 1088px
       margin 0 auto
       margin-top 24px
     .container-aside
       margin-top 20px
+      min-height 600px
       .user
         background rgba(56, 61, 66, 0.06)
         border-radius 8px
@@ -362,4 +407,51 @@ export default {
           .col:hover
             cursor pointer
             color $success
+      .rank
+        overflow hidden
+        margin-left 15px
+        h3
+          display block
+        .rank-box
+          .row
+            width 100%
+            height 48px
+            margin-bottom 16px
+            .userMsg
+              display flex
+              flex-direction row
+              .el-button
+                margin-left 35px
+                height 30px
+                line-height 12px
+              .smallMsg
+                display flex
+                flex-direction column
+                justify-content space-between
+                margin-left 15px
+                .top
+                  max-width 135px
+                  font-weight 700
+                  font-size 14px
+                  color #383d42
+                  line-height 24px
+                  margin-bottom 2px
+                  overflow hidden
+                  text-overflow ellipsis
+                  white-space nowrap
+                .bot
+                  font-size 12px
+                  color #9199a1
+                  line-height 18px
+                  .ml
+                    margin-left 15px
+              .top:hover, .bot:hover, .el-avatar:hover
+                cursor pointer
+    .footer
+      display flex
+      flex-direction row
+      justify-content center
+      align-items center
+      font-size $font-size-tip
+      color $text-num
 </style>
